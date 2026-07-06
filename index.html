@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Control - Hoja de Ruta Unicomer v2.0</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="max-w-7xl mx-auto p-4 lg:p-8">
+        
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row justify-between items-center bg-blue-950 text-white p-6 rounded-xl shadow-md mb-8">
+            <div>
+                <h1 class="text-2xl font-bold">Unicomer - Control de Estrategia de Crédito v2.0</h1>
+                <p class="text-sm text-blue-200 mt-1">Planificación Holística de Iniciativas y Despliegue de Países</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex flex-wrap gap-2">
+                <button onclick="exportarCSV()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                    Exportar Excel (CSV)
+                </button>
+                <button onclick="exportarJSON()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                    Respaldar Datos (JSON)
+                </button>
+                <button onclick="document.getElementById('import-file').click()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                    Restaurar Respaldo
+                </button>
+                <input type="file" id="import-file" class="hidden" accept=".json" onchange="importarJSON(event)">
+                <button onclick="restablecerPredeterminados()" class="bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                    Cargar Demo
+                </button>
+            </div>
+        </div>
+
+        <!-- INDICADORES / DASHBOARD -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Total de Tareas</p>
+                <h3 id="dash-total" class="text-3xl font-bold text-gray-800 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Tareas Pendientes</p>
+                <h3 id="dash-pendientes" class="text-3xl font-bold text-yellow-600 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Tareas Completadas</p>
+                <h3 id="dash-completadas" class="text-3xl font-bold text-green-600 mt-1">0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Progreso General</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <h3 id="dash-progreso" class="text-3xl font-bold text-blue-600">0%</h3>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div id="dash-progreso-bar" class="bg-blue-600 h-3 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- FORMULARIO DINÁMICO (CREAR / EDITAR) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 id="form-titulo" class="text-lg font-bold text-gray-800">Agregar Nueva Actividad</h2>
+                    <button id="cancel-edit" onclick="cancelarEdicion()" class="hidden text-xs text-red-500 hover:underline">Cancelar Edición</button>
+                </div>
+                <form id="task-form" onsubmit="guardarTarea(event)" class="space-y-4">
+                    <input type="hidden" id="form-id">
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Iniciativa</label>
+                        <select id="form-iniciativa" class="w-full mt-1 p-2 border rounded-lg text-sm" required>
+                            <option value="1. Activos">1. Clientes Crédito Activo (Preaprobados)</option>
+                            <option value="2. Conversión">2. Conversión Cash/TDC a Crédito</option>
+                            <option value="3. Inactivos">3. Reactivación Inactivos (Dormidos)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">País</label>
+                        <select id="form-pais" class="w-full mt-1 p-2 border rounded-lg text-sm" required>
+                            <option value="Corp">Corporativo</option>
+                            <option value="SV">El Salvador (SV)</option>
+                            <option value="GT">Guatemala (GT)</option>
+                            <option value="NC">Nicaragua (NC)</option>
+                            <option value="JM">Jamaica (JM)</option>
+                            <option value="TT">Trinidad & Tobago (TT)</option>
+                            <option value="HN">Honduras (HN)</option>
+                            <option value="CR">Costa Rica (CR)</option>
+                            <option value="Todos">Todos los países</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Nombre de la Tarea</label>
+                        <input type="text" id="form-tarea" class="w-full mt-1 p-2 border rounded-lg text-sm" placeholder="Ej. Integración de base BI a Salesforce" required />
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase">Responsable</label>
+                            <input type="text" id="form-responsable" class="w-full mt-1 p-2 border rounded-lg text-sm" placeholder="Ej. BI Corp" required />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase">Dependencia</label>
+                            <input type="text" id="form-dependencia" class="w-full mt-1 p-2 border rounded-lg text-sm" placeholder="Ej. I1.1 o Ninguna" />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase">Fecha Inicio</label>
+                            <input type="date" id="form-inicio" class="w-full mt-1 p-2 border rounded-lg text-sm" required />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase">Fecha Fin</label>
+                            <input type="date" id="form-fin" class="w-full mt-1 p-2 border rounded-lg text-sm" required />
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase">Estado</label>
+                            <select id="form-estado" class="w-full mt-1 p-2 border rounded-lg text-sm" onchange="actualizarProgresoPorEstado()" required>
+                                <option value="Sin Iniciar">Sin Iniciar</option>
+                                <option value="En Progreso">En Progreso</option>
+                                <option value="Bloqueado">Bloqueado</option>
+                                <option value="Completado">Completado</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 uppercase">Progreso %</label>
+                            <input type="number" id="form-progreso" min="0" max="100" class="w-full mt-1 p-2 border rounded-lg text-sm" placeholder="0" required />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 uppercase">Notas / Comentarios</label>
+                        <textarea id="form-notas" rows="2" class="w-full mt-1 p-2 border rounded-lg text-sm" placeholder="Comentarios críticos..."></textarea>
+                    </div>
+                    <button type="submit" id="btn-submit" class="w-full bg-blue-950 hover:bg-blue-900 text-white p-3 rounded-lg font-bold transition text-sm">
+                        Registrar Actividad
+                    </button>
+                </form>
+            </div>
+
+            <!-- TABLA, FILTROS Y GANTT -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- FILTROS -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
+                    <span class="text-sm font-bold text-gray-500 uppercase">Filtros Activos:</span>
+                    <div>
+                        <select id="filtro-pais" onchange="renderizarTodo()" class="p-2 border rounded-lg text-sm">
+                            <option value="Todos">Todos los Países</option>
+                            <option value="Corp">Corporativo</option>
+                            <option value="SV">El Salvador (SV)</option>
+                            <option value="GT">Guatemala (GT)</option>
+                            <option value="NC">Nicaragua (NC)</option>
+                            <option value="JM">Jamaica (JM)</option>
+                            <option value="TT">Trinidad & Tobago (TT)</option>
+                            <option value="HN">Honduras (HN)</option>
+                            <option value="CR">Costa Rica (CR)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <select id="filtro-iniciativa" onchange="renderizarTodo()" class="p-2 border rounded-lg text-sm">
+                            <option value="Todos">Todas las Iniciativas</option>
+                            <option value="1. Activos">1. Clientes Crédito Activo</option>
+                            <option value="2. Conversión">2. Conversión Cash/TDC</option>
+                            <option value="3. Inactivos">3. Reactivación Inactivos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- DIAGRAMA DE GANTT -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Diagrama de Gantt Dinámico</h2>
+                    <div class="min-w-[600px] space-y-4" id="gantt-chart-container">
+                        <!-- Renderizado automático -->
+                    </div>
+                </div>
+
+                <!-- LISTA DE TAREAS -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2">Listado General de Actividades</h2>
+                    <table class="min-w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100">
+                            <tr>
+                                <th class="p-3">Iniciativa / País</th>
+                                <th class="p-3">Tarea</th>
+                                <th class="p-3">Responsable</th>
+                                <th class="p-3">Fechas</th>
+                                <th class="p-3 text-center">Días Rest.</th>
+                                <th class="p-3 text-center">Progreso</th>
+                                <th class="p-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-tareas">
+                            <!-- Inserción dinámica -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGICA DE CONTROL DE LA APLICACIÓN -->
+    <script>
+        // Set de datos iniciales demo
+        const tareasDemo = [
+            { id: "1", iniciativa: "1. Activos", pais: "Corp", tarea: "Unificar criterios de buena paga y cuota disponible", responsable: "Riesgos Corp", inicio: "2025-05-01", fin: "2025-05-15", estado: "Completado", progreso: 100, dependencia: "-", notas: "Alineado con gerencias locales." },
+            { id: "2", iniciativa: "1. Activos", pais: "SV", tarea: "Pruebas de asignación a promotores en tiendas SV", responsable: "Líder local SV", inicio: "2025-05-16", fin: "2025-05-30", estado: "En Progreso", progreso: 50, dependencia: "ID 1", notas: "Piloto inicial." },
+            { id: "3", iniciativa: "2. Conversión", pais: "GT", tarea: "Ajuste de sistema POS para capturar consentimiento de análisis", responsable: "TI Corp", inicio: "2025-06-01", fin: "2025-06-25", estado: "Sin Iniciar", progreso: 0, dependencia: "-", notas: "Evaluación legal requerida." },
+            { id: "4", iniciativa: "3. Inactivos", pais: "NC", tarea: "Envío piloto por Salesforce a inactivos fresh", responsable: "Salesforce Corp", inicio: "2025-05-10", fin: "2025-05-25", estado: "En Progreso", progreso: 30, dependencia: "-", notas: "Quick win de bajo costo." }
+        ];
+
+        let tareas = [];
+
+        window.onload = function() {
+            if (localStorage.getItem("unicomer_tasks_v2")) {
+                tareas = JSON.parse(localStorage.getItem("unicomer_tasks_v2"));
+            } else {
+                tareas = [...tareasDemo];
+                guardarEnStorage();
+            }
+            renderizarTodo();
+        };
+
+        function guardarEnStorage() {
+            localStorage.setItem("unicomer_tasks_v2", JSON.stringify(tareas));
+        }
+
+        function actualizarProgresoPorEstado() {
+            const estado = document.getElementById("form-estado").value;
+            const progresoInput = document.getElementById("form-progreso");
+            if (estado === "Completado") progresoInput.value = 100;
+            else if (estado === "Sin Iniciar") progresoInput.value = 0;
+            else if (estado === "En Progreso" && (progresoInput.value == 0 || progresoInput.value == 100)) {
+                progresoInput.value = 50;
+            }
+        }
+
+        // Crear o Editar Tarea
+        function guardarTarea(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById("form-id").value;
+            const taskData = {
+                iniciativa: document.getElementById("form-iniciativa").value,
+                pais: document.getElementById("form-pais").value,
+                tarea: document.getElementById("form-tarea").value,
+                responsable: document.getElementById("form-responsable").value,
+                inicio: document.getElementById("form-inicio").value,
+                fin: document.getElementById("form-fin").value,
+                estado: document.getElementById("form-estado").value,
+                progreso: parseInt(document.getElementById("form-progreso").value) || 0,
+                dependencia: document.getElementById("form-dependencia").value || "-",
+                notas: document.getElementById("form-notas").value || "-"
+            };
+
+            if (id) {
+                // Editar tarea existente
+                const index = tareas.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    tareas[index] = { ...taskData, id: id };
+                }
+            } else {
+                // Crear nueva tarea
+                taskData.id = Date.now().toString();
+                tareas.push(taskData);
+            }
+
+            guardarEnStorage();
+            renderizarTodo();
+            cancelarEdicion();
+        }
+
+        // Cargar Tarea en Formulario para Edición
+        function editarTarea(id) {
+            const t = tareas.find(t => t.id === id);
+            if (!t) return;
+
+            document.getElementById("form-id").value = t.id;
+            document.getElementById("form-iniciativa").value = t.iniciativa;
+            document.getElementById("form-pais").value = t.pais;
+            document.getElementById("form-tarea").value = t.tarea;
+            document.getElementById("form-responsable").value = t.responsable;
+            document.getElementById("form-inicio").value = t.inicio;
+            document.getElementById("form-fin").value = t.fin;
+            document.getElementById("form-estado").value = t.estado;
+            document.getElementById("form-progreso").value = t.progreso;
+            document.getElementById("form-dependencia").value = t.dependencia;
+            document.getElementById("form-notas").value = t.notas;
+
+            document.getElementById("form-titulo").innerText = "Modificar Actividad";
+            document.getElementById("btn-submit").innerText = "Actualizar Actividad";
+            document.getElementById("cancel-edit").classList.remove("hidden");
+        }
+
+        function cancelarEdicion() {
+            document.getElementById("task-form").reset();
+            document.getElementById("form-id").value = "";
+            document.getElementById("form-titulo").innerText = "Agregar Nueva Actividad";
+            document.getElementById("btn-submit").innerText = "Registrar Actividad";
+            document.getElementById("cancel-edit").classList.add("hidden");
+        }
+
+        function eliminarTarea(id) {
+            if (confirm("¿Está seguro de eliminar esta actividad de la planificación?")) {
+                tareas = tareas.filter(t => t.id !== id);
+                guardarEnStorage();
+                renderizarTodo();
+            }
+        }
+
+        function restablecerPredeterminados() {
+            if (confirm("Esto restablecerá la configuración inicial de ejemplo. ¿Desea continuar?")) {
+                tareas = [...tareasDemo];
+                guardarEnStorage();
+                renderizarTodo();
+            }
+        }
+
+        function calcularDiasRestantes(fechaFinStr, estado) {
+            if (estado === "Completado") return 0;
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
+            const fin = new Date(fechaFinStr);
+            fin.setHours(0,0,0,0);
+            const diffTime = fin - hoy;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays > 0 ? diffDays : 0;
+        }
+
+        function actualizarDashboard(filtradas) {
+            const total = filtradas.length;
+            const pendientes = filtradas.filter(t => t.estado !== "Completado").length;
+            const completadas = filtradas.filter(t => t.estado === "Completado").length;
+            const promedio = total > 0 ? Math.round(filtradas.reduce((acc, t) => acc + t.progreso, 0) / total) : 0;
+
+            document.getElementById("dash-total").innerText = total;
+            document.getElementById("dash-pendientes").innerText = pendientes;
+            document.getElementById("dash-completadas").innerText = completadas;
+            document.getElementById("dash-progreso").innerText = promedio + "%";
+            document.getElementById("dash-progreso-bar").style.width = promedio + "%";
+        }
+
+        function renderizarTodo() {
+            const filtroPais = document.getElementById("filtro-pais").value;
+            const filtroIniciativa = document.getElementById("filtro-iniciativa").value;
+
+            const filtradas = tareas.filter(t => {
+                const cumplePais = (filtroPais === "Todos" || t.pais === filtroPais || t.pais === "Todos");
+                const cumpleIniciativa = (filtroIniciativa === "Todos" || t.iniciativa === filtroIniciativa);
+                return cumplePais && cumpleIniciativa;
+            });
+
+            actualizarDashboard(filtradas);
+            renderizarTabla(filtradas);
+            renderizarGantt(filtradas);
+        }
+
+        function renderizarTabla(lista) {
+            const tbody = document.getElementById("tabla-tareas");
+            tbody.innerHTML = "";
+
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-gray-400">Sin registros para los filtros seleccionados.</td></tr>`;
+                return;
+            }
+
+            lista.forEach(t => {
+                const diasRestantes = calcularDiasRestantes(t.fin, t.estado);
+                const colorEstado = t.estado === "Completado" ? "bg-green-100 text-green-800" :
+                                    t.estado === "En Progreso" ? "bg-blue-100 text-blue-800" :
+                                    t.estado === "Bloqueado" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800";
+
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-3">
+                            <span class="block font-bold text-gray-700">${t.iniciativa}</span>
+                            <span class="inline-block bg-blue-900 text-white text-xs px-2 py-0.5 rounded-full font-semibold mt-1">${t.pais}</span>
+                        </td>
+                        <td class="p-3">
+                            <span class="block text-gray-900 font-medium">${t.tarea}</span>
+                            <small class="text-gray-400 block mt-1">Notas: ${t.notes || t.notas}</small>
+                            <small class="text-gray-500 block font-semibold">Depende de: ${t.dependencia}</small>
+                        </td>
+                        <td class="p-3 text-gray-600">${t.responsable}</td>
+                        <td class="p-3 text-xs">
+                            <span class="block text-gray-500">Inicia: ${t.inicio}</span>
+                            <span class="block text-gray-700 font-bold">Fin: ${t.fin}</span>
+                        </td>
+                        <td class="p-3 text-center font-bold text-gray-700">${diasRestantes} d</td>
+                        <td class="p-3">
+                            <span class="inline-block px-2.5 py-1 text-xs rounded-full font-bold ${colorEstado} mb-2">${t.estado}</span>
+                            <div class="flex items-center gap-1">
+                                <div class="w-16 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${t.progreso}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500 font-bold">${t.progreso}%</span>
+                            </div>
+                        </td>
+                        <td class="p-3 text-center">
+                            <div class="flex gap-1 justify-center">
+                                <button onclick="editarTarea('${t.id}')" class="text-blue-600 hover:text-blue-800 font-bold text-xs bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg transition">
+                                    Editar
+                                </button>
+                                <button onclick="eliminarTarea('${t.id}')" class="text-red-600 hover:text-red-800 font-bold text-xs bg-red-50 hover:bg-red-100 px-2.5 py-1.5 rounded-lg transition">
+                                    Borrar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderizarGantt(lista) {
+            const container = document.getElementById("gantt-chart-container");
+            container.innerHTML = "";
+
+            if (lista.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 text-sm">Sin tareas registradas para graficar.</p>`;
+                return;
+            }
+
+            let minDate = new Date(lista[0].inicio);
+            let maxDate = new Date(lista[0].fin);
+
+            lista.forEach(t => {
+                const inicio = new Date(t.inicio);
+                const fin = new Date(t.fin);
+                if (inicio < minDate) minDate = inicio;
+                if (fin > maxDate) maxDate = fin;
+            });
+
+            minDate.setDate(minDate.getDate() - 3);
+            maxDate.setDate(maxDate.getDate() + 3);
+
+            const totalProjectTime = maxDate - minDate;
+
+            lista.forEach(t => {
+                const taskStart = new Date(t.inicio);
+                const taskEnd = new Date(t.fin);
+
+                const startPercent = ((taskStart - minDate) / totalProjectTime) * 100;
+                const durationPercent = ((taskEnd - taskStart) / totalProjectTime) * 100;
+
+                const colorBarra = t.estado === "Completado" ? "bg-green-500" :
+                                   t.estado === "En Progreso" ? "bg-blue-500" :
+                                   t.estado === "Bloqueado" ? "bg-red-500" : "bg-gray-400";
+
+                container.innerHTML += `
+                    <div class="mb-4">
+                        <div class="flex justify-between text-xs text-gray-500 mb-1">
+                            <span class="font-semibold">${t.tarea} <strong class="text-blue-950">(${t.pais})</strong></span>
+                            <span>Del ${t.inicio} al ${t.fin}</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-6 rounded-lg relative overflow-hidden">
+                            <div class="${colorBarra} text-[10px] text-white flex items-center justify-center font-bold h-full rounded-lg transition-all absolute" 
+                                 style="left: ${startPercent}%; width: ${durationPercent}%; min-width: 40px;">
+                                 ${t.progreso}%
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Exportar como Archivo CSV (Abre nativo en Excel)
+        function exportarCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID;Iniciativa;Pais;Tarea;Responsable;Inicio;Fin;Estado;Progreso;Dependencia;Notas\n";
+
+            tareas.forEach(t => {
+                const fila = `"${t.id}";"${t.iniciativa}";"${t.pais}";"${t.tarea}";"${t.responsable}";"${t.inicio}";"${t.fin}";"${t.estado}";"${t.progreso}%";"${t.dependencia}";"${t.notas}"`;
+                csvContent += fila + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Hoja_Ruta_Crédito_Unicomer.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Exportar Copia de Seguridad completa (JSON)
+        function exportarJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tareas, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", "respaldo_gantt_unicomer.json");
+            dlAnchorElem.click();
+        }
+
+        // Importar Respaldo
+        function importarJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsedData = JSON.parse(e.target.result);
+                    if (Array.isArray(parsedData)) {
+                        tareas = parsedData;
+                        guardarEnStorage();
+                        renderizarTodo();
+                        alert("Respaldo cargado correctamente.");
+                    } else {
+                        alert("El archivo no contiene un formato de datos de planificación válido.");
+                    }
+                } catch (err) {
+                    alert("Error al leer el archivo de respaldo.");
+                }
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
